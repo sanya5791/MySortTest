@@ -1,15 +1,18 @@
 package ua.sanya5791.mysorttest;
 
 import android.app.Activity;
-import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
+
+import ua.sanya5791.mysorttest.Presenter.FrAddWorkerPresenterImpl;
 
 
 /**
@@ -21,13 +24,19 @@ import android.widget.Toast;
  * create an instance of this fragment.
  */
 public class FrAddWorker extends Fragment {
-    // TODO: Rename parameter arguments, choose names that match
+
+    public static final int FIXED_SALARY = 0;
+    public static final int HOUR_RATE = 1;
+
+    private static final String TAG = FrAddWorker.class.getSimpleName();
+    private static final boolean isDebug = true;
+
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
+    private static final String ARG_TYPE_SALARY = "param1";
     private static final String ARG_PARAM2 = "param2";
 
     // TODO: Rename and change types of parameters
-    private String mParam1;
+    private int mSalaryType;
     private String mParam2;
 
     private EditText etName;
@@ -36,22 +45,22 @@ public class FrAddWorker extends Fragment {
     private Button buttonOk;
     private Button buttonCancel;
 
-    private OnFragmentInteractionListener mListener;
+    private OnFragmentInteractionListener presenter;
+//    private OnFragmentInteractionListener mListener;
 
     /**
      * Use this factory method to create a new instance of
      * this fragment using the provided parameters.
      *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
+     * @param salaryType you must choose between FIXED_SALARY and HOUR_RATE constants.
      * @return A new instance of fragment FrAddWorker.
      */
-    // TODO: Rename and change types and number of parameters
-    public static FrAddWorker newInstance(String param1, String param2) {
+    public static FrAddWorker newInstance(int salaryType) {
+//    public static FrAddWorker newInstance(String param1, String param2) {
         FrAddWorker fragment = new FrAddWorker();
         Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
+        args.putInt(ARG_TYPE_SALARY, salaryType);
+//        args.putString(ARG_PARAM2, param2);
         fragment.setArguments(args);
         return fragment;
     }
@@ -61,11 +70,24 @@ public class FrAddWorker extends Fragment {
     }
 
     @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+//        try {
+//            mListener = (OnFragmentInteractionListener) activity;
+//        } catch (ClassCastException e) {
+//            throw new ClassCastException(activity.toString()
+//                    + " must implement OnFragmentInteractionListener");
+//        }
+        presenter = (OnFragmentInteractionListener) new FrAddWorkerPresenterImpl(getActivity());
+    }
+
+
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
+            mSalaryType = getArguments().getInt(ARG_TYPE_SALARY);
+//            mParam2 = getArguments().getString(ARG_PARAM2);
         }
     }
 
@@ -76,8 +98,22 @@ public class FrAddWorker extends Fragment {
         View v = inflater.inflate(R.layout.fr_add_worker, container, false);
 
         etName = (EditText) v.findViewById(R.id.et_name);
+        //select all text in if tv in focus
+        etName.setSelectAllOnFocus(true);
+
         etSalary = (EditText) v.findViewById(R.id.et_salary);
         etSalary.setText("25000");
+        etSalary.setSelectAllOnFocus(true);
+
+        TextView tvSalary = (TextView) v.findViewById(R.id.tv_salary);
+        if(mSalaryType == FIXED_SALARY){
+            tvSalary.setText(R.string.month_salary);
+        }else if(mSalaryType == HOUR_RATE) {
+            tvSalary.setText(R.string.hour_rate);
+        }else{
+            throw new IllegalArgumentException("Wrong type of salary!!!");
+        }
+
 
         buttonOk = (Button) v.findViewById(R.id.bt_ok);
         buttonCancel = (Button) v.findViewById(R.id.bt_cancel);
@@ -100,14 +136,21 @@ public class FrAddWorker extends Fragment {
 
                 Toast.makeText(getActivity(), "Name - " + name
                         + "; Salary - " + salary, Toast.LENGTH_LONG).show();
+                switch (mSalaryType){
+                    case FIXED_SALARY:
+                        presenter.addFixedSalaryWorker(name, salary);
 
-                mListener.onButtonOk(name, salary);
+                        break;
+                    case HOUR_RATE:
+                        presenter.addHourRateWorker(name, salary);
+                        break;
+                };
             }
         });
         buttonCancel.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mListener.onButtonCancel();
+                presenter.onButtonCancel();
             }
         });
 
@@ -115,22 +158,17 @@ public class FrAddWorker extends Fragment {
         return v;
     }
 
-
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        try {
-            mListener = (OnFragmentInteractionListener) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString()
-                    + " must implement OnFragmentInteractionListener");
+    private void myLogger(String message) {
+        if(isDebug){
+            Log.i(TAG, message);
         }
     }
+
 
     @Override
     public void onDetach() {
         super.onDetach();
-        mListener = null;
+        presenter = null;
     }
 
     /**
@@ -145,7 +183,9 @@ public class FrAddWorker extends Fragment {
      */
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
-        public void onButtonOk(String name, double salary);
+        public void addFixedSalaryWorker(String name, double salary);
+        public void addHourRateWorker(String name, double salary);
+
         public void onButtonCancel();
     }
 

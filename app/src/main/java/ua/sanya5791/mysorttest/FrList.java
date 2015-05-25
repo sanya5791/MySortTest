@@ -1,10 +1,11 @@
  package ua.sanya5791.mysorttest;
 
 import android.app.Activity;
-import android.app.DialogFragment;
 import android.content.Context;
+import android.database.DataSetObserver;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,9 +22,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
-import ua.sanya5791.mysorttest.dummy.DummyContent;
+import ua.sanya5791.mysorttest.Presenter.FrListPresenterImpl;
+import ua.sanya5791.mysorttest.model.IFrList;
+import ua.sanya5791.mysorttest.model.Singleton;
 import ua.sanya5791.mysorttest.model.Worker;
-import ua.sanya5791.mysorttest.model.WorkerFixedPayed;
 
  /**
  * A fragment representing a list of Items.
@@ -35,12 +37,15 @@ import ua.sanya5791.mysorttest.model.WorkerFixedPayed;
  * interface.
  */
 public class FrList extends Fragment implements View.OnClickListener,
-                                                AbsListView.OnItemClickListener {
+                                                AbsListView.OnItemClickListener,
+                                                IFrList {
 
      public static final int TYPE_LIST = R.layout.fr_list1;
      public static final int TYPE_GRID = R.layout.fr_list_grid;
+     public static final String TAG = FrList.class.getSimpleName();
 
-     private static ArrayList<Worker> list;
+     //     private static ArrayList<Worker> list;
+     private ArrayList<Worker> list;
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -53,7 +58,8 @@ public class FrList extends Fragment implements View.OnClickListener,
     private double newWorkersSalary;
     private int typeLayout;
 
-    private OnFragmentInteractionListener mListener;
+//    private OnFragmentInteractionListener mListener;
+     private FrListPresenterImpl presenter;
 
      private Button mAddWorker;
      private Button mSortList;
@@ -67,7 +73,8 @@ public class FrList extends Fragment implements View.OnClickListener,
      * The Adapter which will be used to populate the ListView/GridView with
      * Views.
      */
-    private ListAdapter mAdapter;
+    private ArrayAdapter mAdapter;
+//    private ListAdapter mAdapter;
 
      /**
       * to get instance of FrList with parameters
@@ -93,7 +100,21 @@ public class FrList extends Fragment implements View.OnClickListener,
     public FrList() {
     }
 
-    @Override
+     @Override
+     public void onAttach(Activity activity) {
+         super.onAttach(activity);
+//        try {
+//            mListener = (OnFragmentInteractionListener) activity;
+//        } catch (ClassCastException e) {
+//            throw new ClassCastException(activity.toString()
+//                    + " must implement OnFragmentInteractionListener");
+//        }
+
+         presenter = new FrListPresenterImpl(getActivity());
+     }
+
+
+     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -110,14 +131,21 @@ public class FrList extends Fragment implements View.OnClickListener,
             }
         }
 
-        // TODO: Change Adapter to display your content
-        if(list == null || list.isEmpty())
-            list = new ArrayList<>();
+        // Adapter to display your content
+        if(list == null) {
+            list = Singleton.getInstance();
+        }
 
         mAdapter = new MyAdapter1(getActivity());
+//        mAdapter.registerDataSetObserver(new DataSetObserver() {
+//            @Override
+//            public void onChanged() {
+//                super.onChanged();
+//                Log.i(TAG, "registerDataSetObserver onChanged!!!!!");
+//                notifyDataSetChanged();
+//            }
+//        });
 
-//        mAdapter = new ArrayAdapter<DummyContent.DummyItem>(getActivity(),
-//                android.R.layout.simple_list_item_1, android.R.id.text1, DummyContent.ITEMS);
     }
 
     @Override
@@ -141,9 +169,16 @@ public class FrList extends Fragment implements View.OnClickListener,
 
 
 
-        fillWorkersList();
+//        fillWorkersList();
 
         ((AdapterView<ListAdapter>) mListView).setAdapter(mAdapter);
+
+//        mAdapter.registerDataSetObserver(new DataSetObserver() {
+//            @Override
+//            public void onChanged() {
+//                super.onChanged();
+//            }
+//        });
 
         // Set OnItemClickListener so we can be notified on item clicks
         mListView.setOnItemClickListener(this);
@@ -151,25 +186,63 @@ public class FrList extends Fragment implements View.OnClickListener,
         return view;
     }
 
-     private void fillWorkersList() {
-         //fill workers list
-//         String title = "worker: ";
-//         String workerName;
 
-//         for (int i = 10; i>0; i-- ){
-////         for (int i = 0; i<10; i++ ){
-//             workerName = title + i;
-//             WorkerFixedPayed worker = new WorkerFixedPayed(workerName, i);
+     @Override
+     public void onResume() {
+         super.onResume();
+         Log.i(TAG, "onResume():");
+         mAdapter.notifyDataSetChanged();
+     }
+
+     @Override
+     public void onPause() {
+         super.onPause();
+         Log.i(TAG, "onPause():");
+     }
+
+     @Override
+     public void onClick(View v) {
+         int id = v.getId();
+
+         switch (id) {
+             case R.id.bt_add_worker:
+                 Toast.makeText(getActivity(), "Выберите сотрудника", Toast.LENGTH_SHORT).show();
+                 presenter.dFrChooseTypeWorkerStart();
+                 break;
+
+             case R.id.bt_sort_list1:
+                 Toast.makeText(getActivity(), "Выберите вид сортировки", Toast.LENGTH_SHORT).show();
+                 presenter.dFrSortTypeChooser();
+
+                 break;
+         }
+     }
+
+
+     @Override
+     public void onDetach() {
+         super.onDetach();
+         presenter = null;
+     }
+
+
+     @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        if (null != presenter) {
+            // Notify the active callbacks interface (the activity, if the
+            // fragment is attached to one) that an item has been selected.
+            Toast.makeText(getActivity(), "You pressed position: " + position +
+                                            ", with id: " + id, Toast.LENGTH_SHORT).show();
+//            presenter.addWorker(DummyContent.ITEMS.get(position).id);
+        }
+    }
+
+     private void fillWorkersList() {
+
+//         if(newWorkerName != null) {
+//             Worker worker = new WorkerFixedPayed(newWorkerName, newWorkersSalary);
 //             list.add(worker);
 //         }
-
-         if(newWorkerName != null) {
-             Worker worker = new WorkerFixedPayed(newWorkerName, newWorkersSalary);
-//         WorkerFixedPayed worker = new WorkerFixedPayed(newWorkerName, newWorkersSalary);
-             list.add(worker);
-         }
-
-
 
          Collections.sort(list, new Comparator<Worker>() {
              @Override
@@ -179,52 +252,6 @@ public class FrList extends Fragment implements View.OnClickListener,
          });
 
      }
-
-     @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        try {
-            mListener = (OnFragmentInteractionListener) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString()
-                    + " must implement OnFragmentInteractionListener");
-        }
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        mListener = null;
-    }
-
-     @Override
-     public void onClick(View v) {
-         int id = v.getId();
-
-         switch (id) {
-             case R.id.bt_add_worker:
-                 Toast.makeText(getActivity(), "Выберите сотрудника", Toast.LENGTH_SHORT).show();
-                 mListener.onFragmentInteraction("just a message :-)");
-                 break;
-
-             case R.id.bt_sort_list1:
-                 Toast.makeText(getActivity(), "Выберите вид сортировки", Toast.LENGTH_SHORT).show();
-
-                 break;
-         }
-     }
-
-
-
-     @Override
-    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        if (null != mListener) {
-            // Notify the active callbacks interface (the activity, if the
-            // fragment is attached to one) that an item has been selected.
-            mListener.onFragmentInteraction(DummyContent.ITEMS.get(position).id);
-        }
-    }
-
 
 
     /**
@@ -240,7 +267,12 @@ public class FrList extends Fragment implements View.OnClickListener,
         }
     }
 
-    /**
+     @Override
+     public void notifyDataSetChanged() {
+         mAdapter.notifyDataSetChanged();
+     }
+
+     /**
      * This interface must be implemented by activities that contain this
      * fragment to allow an interaction in this fragment to be communicated
      * to the activity and potentially other fragments contained in that
@@ -252,7 +284,9 @@ public class FrList extends Fragment implements View.OnClickListener,
      */
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
-        public void onFragmentInteraction(String id);
+//        public void addWorker(String id);
+        void dFrChooseTypeWorkerStart();
+        void dFrSortTypeChooser();
     }
 
 
@@ -281,6 +315,7 @@ public class FrList extends Fragment implements View.OnClickListener,
              return convertView;
 //             return super.getView(position, convertView, parent);
          }
+
      }
 
 }

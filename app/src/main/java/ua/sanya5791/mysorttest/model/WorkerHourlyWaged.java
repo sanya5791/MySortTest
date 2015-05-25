@@ -8,7 +8,7 @@ public class WorkerHourlyWaged extends Worker {
     int mHoursPerDay = 8;
     double mHourlyRate;
 
-    protected WorkerHourlyWaged(String mName, double hourlyRate) {
+    public WorkerHourlyWaged(String mName, double hourlyRate) {
         super(mName);
         mHourlyRate = hourlyRate;
         averageMonthlySalary();
